@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tablero Kanban Pro — Gestión Visual de Flujo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuente Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen flex flex-col selection:bg-indigo-100 selection:text-indigo-800">
+
+    <!-- BARRA DE NAVEGACIÓN Y CONTROLES SUPERIORES -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-3.5">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                
+                <!-- Marca y Título -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm shadow-indigo-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                <rect x="3" y="3" width="5" height="18" rx="1.5"></rect>
+                                <rect x="10" y="3" width="5" height="12" rx="1.5"></rect>
+                                <rect x="17" y="3" width="4" height="15" rx="1.5"></rect>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-bold text-slate-900 leading-tight">KanbanFlow</h1>
+                            <p class="text-xs text-slate-500">Flujo de trabajo visual &bull; Guardado automático</p>
+                        </div>
+                    </div>
+
+                    <!-- Botón Nueva Tarea (Visible rápido en móvil) -->
+                    <button onclick="openTaskModal()" class="lg:hidden inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-3.5 py-2 rounded-lg shadow-sm transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        Nueva
+                    </button>
+                </div>
+
+                <!-- Controles: Búsqueda, Filtro y Acciones -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <!-- Buscador en tiempo real -->
+                    <div class="relative flex-1 sm:flex-initial sm:w-64">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 103.5 10.5a7.5 7.5 0 0013.15 6.15z"/>
+                        </svg>
+                        <input type="text" id="searchInput" placeholder="Buscar título, categoría..." 
+                               class="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                        <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Filtro de Prioridad -->
+                    <div class="relative">
+                        <select id="priorityFilter" class="appearance-none bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-8 py-1.5 text-sm text-slate-700 font-medium focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer transition-all">
+                            <option value="all">Prioridad: Todas</option>
+                            <option value="high">🔴 Alta</option>
+                            <option value="medium">🟡 Media</option>
+                            <option value="low">🟢 Baja</option>
+                        </select>
+                        <svg class="w-4 h-4 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                    </div>
+
+                    <div class="h-5 w-px bg-slate-200 hidden sm:block mx-0.5"></div>
+
+                    <!-- Exportar JSON -->
+                    <button onclick="exportJSON()" title="Exportar respaldo JSON" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium transition-colors">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        <span class="hidden md:inline">Exportar</span>
+                    </button>
+
+                    <!-- Importar JSON -->
+                    <label title="Importar respaldo JSON" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm font-medium cursor-pointer transition-colors">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                        <span class="hidden md:inline">Importar</span>
+                        <input type="file" id="importInput" accept=".json" class="hidden" onchange="importJSON(event)">
+                    </label>
+
+                    <!-- Menú de Reinicio / Limpieza -->
+                    <div class="relative">
+                        <button onclick="toggleResetMenu()" id="resetMenuBtn" title="Opciones del tablero" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-600 border border-slate-200 rounded-lg text-sm font-medium transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z"/></svg>
+                        </button>
+                        <div id="resetDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-40">
+                            <button onclick="requestConfirmation('reset')" class="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                Cargar datos de ejemplo
+                            </button>
+                            <button onclick="requestConfirmation('clear')" class="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                Vaciar todo el tablero
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botón Principal Nueva Tarea (Desktop) -->
+                    <button onclick="openTaskModal()" class="hidden lg:inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg shadow-sm shadow-indigo-200 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                        Nueva tarjeta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENEDOR PRINCIPAL DEL TABLERO KANBAN -->
+    <main class="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 overflow-x-auto">
+        <div id="kanbanBoard" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-start min-w-full">
+            <!-- Las 4 columnas se renderizan dinámicamente aquí -->
+        </div>
+    </main>
+
+    <!-- MODAL DE CREACIÓN Y EDICIÓN DE TARJETA -->
+    <div id="taskModal" class="hidden fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden transform transition-all" onclick="event.stopPropagation()">
+            <!-- Cabecera del Modal -->
+            <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+                <h2 id="modalTitle" class="text-base font-bold text-slate-900">Nueva tarjeta</h2>
+                <button onclick="closeTaskModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Formulario -->
+            <form id="taskForm" onsubmit="saveTask(event)" class="p-6 space-y-4 max-h-[82vh] overflow-y-auto">
+                <input type="hidden" id="taskId">
+
+                <!-- Título -->
+                <div>
+                    <label for="taskTitleInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
+                        Título de la tarea <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="text" id="taskTitleInput" required placeholder="Ej. Revisar marco teórico del capítulo 2"
+                           class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                </div>
+
+                <!-- Columna y Prioridad -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="taskColumnInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Columna</label>
+                        <select id="taskColumnInput" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                            <option value="backlog">Backlog (Por hacer)</option>
+                            <option value="doing">En progreso (Doing)</option>
+                            <option value="review">En revisión / Espera</option>
+                            <option value="done">Terminado (Done)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="taskPriorityInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Prioridad</label>
+                        <select id="taskPriorityInput" class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                            <option value="high">🔴 Alta</option>
+                            <option value="medium" selected>🟡 Media</option>
+                            <option value="low">🟢 Baja</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Categoría y Fecha Límite -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="taskCategoryInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Categoría / Proyecto</label>
+                        <input type="text" id="taskCategoryInput" maxlength="24" placeholder="Ej. Tesis, Desarrollo, Gestión"
+                               class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label for="taskDueDateInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Fecha límite</label>
+                        <input type="date" id="taskDueDateInput"
+                               class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div>
+                    <label for="taskDescInput" class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1.5">Descripción detallada</label>
+                    <textarea id="taskDescInput" rows="3" placeholder="Añade notas, enlaces de referencia o criterios de aceptación..."
+                              class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none"></textarea>
+                </div>
+
+                <!-- Subtareas / Checklist -->
+                <div class="pt-1">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2">Subtareas / Checklist</label>
+                    <div class="flex gap-2 mb-2.5">
+                        <input type="text" id="newSubtaskInput" placeholder="Añadir un paso o subtarea..."
+                               onkeydown="if(event.key==='Enter'){event.preventDefault(); addSubtaskToModal();}"
+                               class="flex-1 px-3.5 py-1.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                        <button type="button" onclick="addSubtaskToModal()" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl transition-colors">
+                            Añadir
+                        </button>
+                    </div>
+                    <ul id="modalSubtaskList" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        <!-- Subtareas temporales en edición -->
+                    </ul>
+                </div>
+
+                <!-- Botones de Acción del Modal -->
+                <div class="pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <button type="button" id="deleteTaskBtn" onclick="deleteCurrentTask()" class="hidden inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50 rounded-xl transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Eliminar
+                    </button>
+                    <div class="flex items-center gap-2.5 ml-auto">
+                        <button type="button" onclick="closeTaskModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm shadow-indigo-200 transition-colors">
+                            Guardar tarjeta
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMACIÓN PERSONALIZADO (Sin alert/confirm nativos) -->
+    <div id="confirmModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-sm w-full p-6 space-y-4">
+            <div class="flex items-start gap-3.5">
+                <div id="confirmIconWrapper" class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div>
+                    <h3 id="confirmTitle" class="text-base font-bold text-slate-900">¿Confirmar acción?</h3>
+                    <p id="confirmMessage" class="text-sm text-slate-600 mt-1">Esta acción modificará los datos actuales de tu tablero.</p>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2.5 pt-2">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors">
+                    Cancelar
+                </button>
+                <button id="confirmExecuteBtn" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICACIÓN TOAST -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        /**
+         * CONFIGURACIÓN Y ESTADO GLOBAL DEL TABLERO KANBAN
+         */
+        const STORAGE_KEY = 'kanban_flow_tasks_v1';
+        const WIP_LIMIT_DOING = 3;
+
+        const COLUMNS = [
+            { id: 'backlog', title: 'Backlog (Por hacer)', dotColor: 'bg-slate-400', headerBg: 'bg-slate-200/70' },
+            { id: 'doing',   title: 'En progreso (Doing)', dotColor: 'bg-indigo-500', headerBg: 'bg-indigo-50/90', wipLimit: WIP_LIMIT_DOING },
+            { id: 'review',  title: 'En revisión / Espera', dotColor: 'bg-amber-500', headerBg: 'bg-amber-50/80' },
+            { id: 'done',    title: 'Terminado (Done)', dotColor: 'bg-emerald-500', headerBg: 'bg-emerald-50/80' }
+        ];
+
+        const PRIORITY_META = {
+            high:   { label: 'Alta',  badgeClass: 'bg-rose-50 text-rose-700 border-rose-200', dotClass: 'bg-rose-500' },
+            medium: { label: 'Media', badgeClass: 'bg-amber-50 text-amber-700 border-amber-200', dotClass: 'bg-amber-500' },
+            low:    { label: 'Baja',  badgeClass: 'bg-emerald-50 text-emerald-700 border-emerald-200', dotClass: 'bg-emerald-500' }
+        };
+
+        let tasks = [];
+        let modalSubtasks = [];
+        let draggedTaskId = null;
+        let pendingConfirmAction = null;
+
+        /**
+         * DATOS DE EJEMPLO REALISTAS
+         */
+        function getDefaultTasks() {
+            const today = new Date();
+            const addDays = (days) => {
+                const d = new Date(today);
+                d.setDate(d.getDate() + days);
+                return d.toISOString().split('T')[0];
+            };
+
+            return [
+                {
+                    id: 'task-' + Date.now() + '-1',
+                    column: 'backlog',
+                    title: 'Definir arquitectura de microservicios y base de datos',
+                    description: 'Documentar el esquema entidad-relación y los contratos de API REST para el módulo de cotizaciones.',
+                    priority: 'medium',
+                    category: 'Desarrollo',
+                    dueDate: addDays(7),
+                    subtasks: [
+                        { id: 's1', text: 'Diagrama ER en dbdiagram', done: true },
+                        { id: 's2', text: 'Especificación OpenAPI 3.0', done: false },
+                        { id: 's3', text: 'Validar índices de búsqueda', done: false }
+                    ]
+                },
+                {
+                    id: 'task-' + Date.now() + '-2',
+                    column: 'doing',
+                    title: 'Redactar marco teórico sobre integración regional',
+                    description: 'Analizar normativa vigente sobre compras públicas y acuerdos comerciales internacionales.',
+                    priority: 'high',
+                    category: 'Tesis',
+                    dueDate: addDays(1),
+                    subtasks: [
+                        { id: 's4', text: 'Recopilar bibliografía indexada (2020-2026)', done: true },
+                        { id: 's5', text: 'Sintetizar antecedentes normativos', done: true },
+                        { id: 's6', text: 'Redactar sección de conclusiones preliminares', done: false }
+                    ]
+                },
+                {
+                    id: 'task-' + Date.now() + '-3',
+                    column: 'doing',
+                    title: 'Optimizar cálculo de tarifas en Cotizador Web',
+                    description: 'Corregir redondeo decimal en recargos por cobertura adicional y mejorar tiempos de respuesta en móvil.',
+                    priority: 'high',
+                    category: 'Producto',
+                    dueDate: addDays(0),
+                    subtasks: [
+                        { id: 's7', text: 'Pruebas unitarias de fórmulas', done: true },
+                        { id: 's8', text: 'Ajustar diseño responsivo del resumen', done: false }
+                    ]
+                },
+                {
+                    id: 'task-' + Date.now() + '-4',
+                    column: 'review',
+                    title: 'Revisión de propuesta comercial y condiciones generales',
+                    description: 'A la espera de devolución del equipo legal sobre las cláusulas de exclusión.',
+                    priority: 'medium',
+                    category: 'Gestión',
+                    dueDate: addDays(3),
+                    subtasks: [
+                        { id: 's9', text: 'Enviar borrador por correo', done: true },
+                        { id: 's10', text: 'Incorporar comentarios finales', done: false }
+                    ]
+                },
+                {
+                    id: 'task-' + Date.now() + '-5',
+                    column: 'done',
+                    title: 'Configurar entorno de despliegue continuo (CI/CD)',
+                    description: 'Pipeline automatizado funcionando en repositorio principal con validación de linters.',
+                    priority: 'low',
+                    category: 'DevOps',
+                    dueDate: addDays(-2),
+                    subtasks: [
+                        { id: 's11', text: 'Configurar GitHub Actions', done: true },
+                        { id: 's12', text: 'Verificar despliegue en producción', done: true }
+                    ]
+                }
+            ];
+        }
+
+        /**
+         * INICIALIZACIÓN Y PERSISTENCIA EN LOCALSTORAGE
+         */
+        function initBoard() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    tasks = Array.isArray(parsed) ? parsed : getDefaultTasks();
+                } else {
+                    tasks = getDefaultTasks();
+                    saveToStorage();
+                }
+            } catch (e) {
+                console.error('Error leyendo localStorage:', e);
+                tasks = getDefaultTasks();
+            }
+
+            // Listeners de filtros
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                document.getElementById('clearSearchBtn').classList.toggle('hidden', !e.target.value);
+                renderBoard();
+            });
+            document.getElementById('priorityFilter').addEventListener('change', renderBoard);
+
+            // Cerrar dropdown al hacer clic fuera
+            document.addEventListener('click', (e) => {
+                const dropdown = document.getElementById('resetDropdown');
+                const btn = document.getElementById('resetMenuBtn');
+                if (!dropdown.contains(e.target) && !btn.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+
+            // Cerrar modales con Escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    closeTaskModal();
+                    closeConfirmModal();
+                }
+            });
+
+            renderBoard();
+        }
+
+        function saveToStorage() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+            } catch (e) {
+                showToast('No se pudo guardar en localStorage (espacio lleno)', 'error');
+            }
+        }
+
+        /**
+         * RENDERIZADO DEL TABLERO Y TARJETAS
+         */
+        function renderBoard() {
+            const boardEl = document.getElementById('kanbanBoard');
+            const searchQuery = document.getElementById('searchInput').value.trim().toLowerCase();
+            const priorityFilter = document.getElementById('priorityFilter').value;
+
+            boardEl.innerHTML = '';
+
+            COLUMNS.forEach(col => {
+                // Filtrar tareas pertenecientes a esta columna
+                const allColTasks = tasks.filter(t => t.column === col.id);
+                const visibleTasks = allColTasks.filter(t => {
+                    const matchesPriority = priorityFilter === 'all' || t.priority === priorityFilter;
+                    const matchesSearch = !searchQuery || 
+                        t.title.toLowerCase().includes(searchQuery) ||
+                        (t.description && t.description.toLowerCase().includes(searchQuery)) ||
+                        (t.category && t.category.toLowerCase().includes(searchQuery));
+                    return matchesPriority && matchesSearch;
+                });
+
+                const isWipExceeded = col.wipLimit && allColTasks.length > col.wipLimit;
+
+                // Crear elemento columna
+                const colSection = document.createElement('section');
+                colSection.className = `flex flex-col rounded-2xl bg-slate-200/60 border transition-colors duration-200 min-h-[520px] max-h-[calc(100vh-135px)] ${
+                    isWipExceeded ? 'border-amber-400 ring-2 ring-amber-400/20' : 'border-slate-200/90'
+                }`;
+                colSection.dataset.columnId = col.id;
+
+                // Cabecera de la columna
+                colSection.innerHTML = `
+                    <div class="p-3.5 pb-2.5 flex items-center justify-between gap-2 shrink-0">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full ${col.dotColor} shrink-0"></span>
+                            <h2 class="text-sm font-bold text-slate-800 truncate">${col.title}</h2>
+                            <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full ${
+                                isWipExceeded ? 'bg-amber-500 text-white' : 'bg-white text-slate-700 border border-slate-200'
+                            }">
+                                ${allColTasks.length}${col.wipLimit ? '/' + col.wipLimit : ''}
+                            </span>
+                        </div>
+                        <button onclick="openTaskModal(null, '${col.id}')" title="Añadir tarjeta en ${col.title}"
+                                class="p-1 text-slate-500 hover:text-indigo-600 hover:bg-white rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                            </svg>
+                        </button>
+                    </div>
+                    ${isWipExceeded ? `
+                        <div class="mx-3 mb-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2 text-xs text-amber-800 font-medium shrink-0">
+                            <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                            <span>Límite WIP (${col.wipLimit}) superado. Prioriza terminar antes de iniciar más.</span>
+                        </div>
+                    ` : ''}
+                `;
+
+                // Zona de Drop para tarjetas
+                const dropZone = document.createElement('div');
+                dropZone.className = 'kanban-dropzone flex-1 px-3 pb-3 pt-1 space-y-3 overflow-y-auto rounded-b-2xl transition-all duration-150';
+                dropZone.dataset.columnId = col.id;
+
+                // Eventos Drag & Drop sobre la zona de columna
+                dropZone.addEventListener('dragover', handleDragOver);
+                dropZone.addEventListener('dragenter', handleDragEnter);
+                dropZone.addEventListener('dragleave', handleDragLeave);
+                dropZone.addEventListener('drop', handleDrop);
+
+                if (visibleTasks.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'empty-placeholder h-28 border-2 border-dashed border-slate-300/80 rounded-xl flex flex-col items-center justify-center text-center p-4 text-slate-400 select-none';
+                    emptyState.innerHTML = `
+                        <p class="text-xs font-medium">${searchQuery || priorityFilter !== 'all' ? 'Sin coincidencias con el filtro' : 'Arrastra tarjetas aquí'}</p>
+                    `;
+                    dropZone.appendChild(emptyState);
+                } else {
+                    visibleTasks.forEach(task => {
+                        dropZone.appendChild(createCardElement(task));
+                    });
+                }
+
+                colSection.appendChild(dropZone);
+                boardEl.appendChild(colSection);
+            });
+        }
+
+        /**
+         * CONSTRUCCIÓN DE CADA TARJETA KANBAN
+         */
+        function createCardElement(task) {
+            const pMeta = PRIORITY_META[task.priority] || PRIORITY_META.medium;
+            const card = document.createElement('article');
+            card.className = 'kanban-card group bg-white rounded-xl p-3.5 shadow-xs hover:shadow-md border border-slate-200/90 hover:border-indigo-300 cursor-grab active:cursor-grabbing transition-all duration-150 select-none';
+            card.draggable = true;
+            card.dataset.taskId = task.id;
+
+            // Eventos Drag & Drop de tarjeta individual
+            card.addEventListener('dragstart', (e) => {
+                draggedTaskId = task.id;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', task.id);
+                setTimeout(() => {
+                    card.classList.add('opacity-40', 'scale-[0.98]', 'border-dashed', 'border-indigo-400');
+                }, 0);
+            });
+
+            card.addEventListener('dragend', () => {
+                draggedTaskId = null;
+                card.classList.remove('opacity-40', 'scale-[0.98]', 'border-dashed', 'border-indigo-400');
+                document.querySelectorAll('.kanban-dropzone').forEach(zone => {
+                    zone.classList.remove('bg-indigo-50/70', 'ring-2', 'ring-inset', 'ring-indigo-400', 'ring-dashed');
+                });
+            });
+
+            // Abrir modal al hacer clic en la tarjeta (evitando conflictos con botones internos)
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('button') || e.target.closest('input')) return;
+                openTaskModal(task.id);
+            });
+
+            // Calcular estado de fecha límite
+            const dueBadgeHtml = renderDueDateBadge(task.dueDate, task.column === 'done');
+
+            // Calcular progreso de subtareas
+            const totalSub = task.subtasks ? task.subtasks.length : 0;
+            const doneSub = task.subtasks ? task.subtasks.filter(s => s.done).length : 0;
+            const pctSub = totalSub > 0 ? Math.round((doneSub / totalSub) * 100) : 0;
+
+            card.innerHTML = `
+                <!-- Fila superior: Etiquetas de Prioridad y Categoría -->
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold border ${pMeta.badgeClass}">
+                            <span class="w-1.5 h-1.5 rounded-full ${pMeta.dotClass}"></span>
+                            ${pMeta.label}
+                        </span>
+                        ${task.category ? `
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/80">
+                                ${escapeHTML(task.category)}
+                            </span>
+                        ` : ''}
+                    </div>
+                    <button onclick="openTaskModal('${task.id}')" title="Editar tarjeta"
+                            class="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-all">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Título -->
+                <h3 class="text-sm font-semibold text-slate-900 leading-snug mb-1 ${task.column === 'done' ? 'line-through text-slate-500' : ''}">
+                    ${escapeHTML(task.title)}
+                </h3>
+
+                <!-- Descripción resumida -->
+                ${task.description ? `
+                    <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-3">
+                        ${escapeHTML(task.description)}
+                    </p>
+                ` : '<div class="mb-2"></div>'}
+
+                <!-- Barra de progreso de subtareas (si existen) -->
+                ${totalSub > 0 ? `
+                    <div class="mb-3">
+                        <div class="flex items-center justify-between text-[11px] font-medium text-slate-500 mb-1">
+                            <span class="inline-flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 ${doneSub === totalSub ? 'text-emerald-500' : 'text-slate-400'}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Subtareas
+                            </span>
+                            <span class="${doneSub === totalSub ? 'text-emerald-600 font-semibold' : ''}">${doneSub}/${totalSub}</span>
+                        </div>
+                        <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-300 ${doneSub === totalSub ? 'bg-emerald-500' : 'bg-indigo-500'}" style="width: ${pctSub}%"></div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- Pie de tarjeta: Fecha límite y controles rápidos -->
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
+                    <div>${dueBadgeHtml}</div>
+                    
+                    <!-- Botones rápidos de movimiento para accesibilidad / móvil -->
+                    <div class="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                        ${getPrevColumn(task.column) ? `
+                            <button onclick="moveTaskStep('${task.id}', -1)" title="Mover a columna anterior"
+                                    class="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                            </button>
+                        ` : ''}
+                        ${getNextColumn(task.column) ? `
+                            <button onclick="moveTaskStep('${task.id}', 1)" title="Avanzar a siguiente columna"
+                                    class="p-1 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            return card;
+        }
+
+        /**
+         * INDICADOR VISUAL DE FECHA LÍMITE
+         */
+        function renderDueDateBadge(dueDateStr, isDone) {
+            if (!dueDateStr) {
+                return `<span class="text-[11px] text-slate-400">Sin fecha</span>`;
+            }
+
+            const [year, month, day] = dueDateStr.split('-').map(Number);
+            const due = new Date(year, month - 1, day);
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+
+            const formatted = due.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+
+            if (isDone) {
+                return `<span class="inline-flex items-center gap-1 text-[11px] text-slate-400 font-medium">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+                    ${formatted}
+                </span>`;
+            }
+
+            if (diffDays < 0) {
+                return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200 text-[11px] font-semibold" title="Fecha vencida">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Vencida (${formatted})
+                </span>`;
+            }
+
+            if (diffDays <= 2) {
+                const label = diffDays === 0 ? 'Hoy' : (diffDays === 1 ? 'Mañana' : formatted);
+                return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold" title="Próxima a vencer">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    ${label}
+                </span>`;
+            }
+
+            return `<span class="inline-flex items-center gap-1 text-[11px] text-slate-500 font-medium">
+                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+                ${formatted}
+            </span>`;
+        }
+
+        /**
+         * LÓGICA NATIVA DE DRAG & DROP (ENTRE COLUMNAS Y REORDENAMIENTO)
+         */
+        function handleDragEnter(e) {
+            e.preventDefault();
+            const zone = e.currentTarget;
+            zone.classList.add('bg-indigo-50/70', 'ring-2', 'ring-inset', 'ring-indigo-400', 'ring-dashed');
+        }
+
+        function handleDragLeave(e) {
+            const zone = e.currentTarget;
+            if (!zone.contains(e.relatedTarget)) {
+                zone.classList.remove('bg-indigo-50/70', 'ring-2', 'ring-inset', 'ring-indigo-400', 'ring-dashed');
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            const zone = e.currentTarget;
+            const draggingEl = document.querySelector(`[data-task-id="${draggedTaskId}"]`);
+            if (!draggingEl) return;
+
+            // Eliminar placeholder vacío si existe mientras se arrastra encima
+            const placeholder = zone.querySelector('.empty-placeholder');
+            if (placeholder) placeholder.remove();
+
+            const afterElement = getDragAfterElement(zone, e.clientY);
+            if (afterElement == null) {
+                zone.appendChild(draggingEl);
+            } else {
+                zone.insertBefore(draggingEl, afterElement);
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const zone = e.currentTarget;
+            zone.classList.remove('bg-indigo-50/70', 'ring-2', 'ring-inset', 'ring-indigo-400', 'ring-dashed');
+
+            const taskId = e.dataTransfer.getData('text/plain') || draggedTaskId;
+            const targetColId = zone.dataset.columnId;
+            if (!taskId || !targetColId) return;
+
+            const taskIndex = tasks.findIndex(t => t.id === taskId);
+            if (taskIndex === -1) return;
+
+            const [movedTask] = tasks.splice(taskIndex, 1);
+            movedTask.column = targetColId;
+
+            // Determinar nueva posición exacta según el orden DOM en la columna destino
+            const cardElsInZone = [...zone.querySelectorAll('.kanban-card')];
+            const domPos = cardElsInZone.findIndex(el => el.dataset.taskId === taskId);
+
+            if (domPos === -1 || domPos >= cardElsInZone.length - 1) {
+                tasks.push(movedTask);
+            } else {
+                const nextCardId = cardElsInZone[domPos + 1].dataset.taskId;
+                const insertIdx = tasks.findIndex(t => t.id === nextCardId);
+                if (insertIdx === -1) {
+                    tasks.push(movedTask);
+                } else {
+                    tasks.splice(insertIdx, 0, movedTask);
+                }
+            }
+
+            saveToStorage();
+            renderBoard();
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.kanban-card:not(.opacity-40)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        /**
+         * MOVIMIENTO RÁPIDO CON FLECHAS DE TARJETA
+         */
+        function getPrevColumn(colId) {
+            const idx = COLUMNS.findIndex(c => c.id === colId);
+            return idx > 0 ? COLUMNS[idx - 1].id : null;
+        }
+
+        function getNextColumn(colId) {
+            const idx = COLUMNS.findIndex(c => c.id === colId);
+            return idx < COLUMNS.length - 1 ? COLUMNS[idx + 1].id : null;
+        }
+
+        function moveTaskStep(taskId, direction) {
+            const task = tasks.find(t => t.id === taskId);
+            if (!task) return;
+            const targetCol = direction === 1 ? getNextColumn(task.column) : getPrevColumn(task.column);
+            if (!targetCol) return;
+
+            task.column = targetCol;
+            saveToStorage();
+            renderBoard();
+        }
+
+        /**
+         * GESTIÓN DEL MODAL DE CREACIÓN / EDICIÓN
+         */
+        function openTaskModal(taskId = null, defaultCol = 'backlog') {
+            const modal = document.getElementById('taskModal');
+            const deleteBtn = document.getElementById('deleteTaskBtn');
+            const titleEl = document.getElementById('modalTitle');
+
+            if (taskId) {
+                const task = tasks.find(t => t.id === taskId);
+                if (!task) return;
+
+                titleEl.textContent = 'Editar tarjeta';
+                document.getElementById('taskId').value = task.id;
+                document.getElementById('taskTitleInput').value = task.title;
+                document.getElementById('taskColumnInput').value = task.column;
+                document.getElementById('taskPriorityInput').value = task.priority;
+                document.getElementById('taskCategoryInput').value = task.category || '';
+                document.getElementById('taskDueDateInput').value = task.dueDate || '';
+                document.getElementById('taskDescInput').value = task.description || '';
+                modalSubtasks = task.subtasks ? JSON.parse(JSON.stringify(task.subtasks)) : [];
+                deleteBtn.classList.remove('hidden');
+            } else {
+                titleEl.textContent = 'Nueva tarjeta';
+                document.getElementById('taskForm').reset();
+                document.getElementById('taskId').value = '';
+                document.getElementById('taskColumnInput').value = defaultCol;
+                document.getElementById('taskPriorityInput').value = 'medium';
+                modalSubtasks = [];
+                deleteBtn.classList.add('hidden');
+            }
+
+            renderModalSubtasks();
+            modal.classList.remove('hidden');
+            setTimeout(() => document.getElementById('taskTitleInput').focus(), 50);
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.add('hidden');
+        }
+
+        function renderModalSubtasks() {
+            const list = document.getElementById('modalSubtaskList');
+            list.innerHTML = '';
+
+            if (modalSubtasks.length === 0) {
+                list.innerHTML = `<li class="text-xs text-slate-400 italic py-1">No hay subtareas añadidas.</li>`;
+                return;
+            }
+
+            modalSubtasks.forEach((sub, idx) => {
+                const li = document.createElement('li');
+                li.className = 'flex items-center justify-between gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200/80';
+                li.innerHTML = `
+                    <label class="flex items-center gap-2.5 flex-1 cursor-pointer min-w-0">
+                        <input type="checkbox" ${sub.done ? 'checked' : ''} onchange="toggleModalSubtask(${idx})"
+                               class="w-4 h-4 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer">
+                        <span class="text-xs text-slate-700 truncate ${sub.done ? 'line-through text-slate-400' : ''}">
+                            ${escapeHTML(sub.text)}
+                        </span>
+                    </label>
+                    <button type="button" onclick="removeModalSubtask(${idx})" class="text-slate-400 hover:text-rose-600 p-0.5 rounded transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function addSubtaskToModal() {
+            const input = document.getElementById('newSubtaskInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            modalSubtasks.push({
+                id: 'sub-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                text,
+                done: false
+            });
+            input.value = '';
+            renderModalSubtasks();
+            input.focus();
+        }
+
+        function toggleModalSubtask(idx) {
+            if (modalSubtasks[idx]) {
+                modalSubtasks[idx].done = !modalSubtasks[idx].done;
+                renderModalSubtasks();
+            }
+        }
+
+        function removeModalSubtask(idx) {
+            modalSubtasks.splice(idx, 1);
+            renderModalSubtasks();
+        }
+
+        function saveTask(e) {
+            e.preventDefault();
+            const id = document.getElementById('taskId').value;
+            const title = document.getElementById('taskTitleInput').value.trim();
+            if (!title) return;
+
+            const taskData = {
+                title,
+                column: document.getElementById('taskColumnInput').value,
+                priority: document.getElementById('taskPriorityInput').value,
+                category: document.getElementById('taskCategoryInput').value.trim(),
+                dueDate: document.getElementById('taskDueDateInput').value,
+                description: document.getElementById('taskDescInput').value.trim(),
+                subtasks: modalSubtasks
+            };
+
+            if (id) {
+                const index = tasks.findIndex(t => t.id === id);
+                if (index !== -1) {
+                    tasks[index] = { ...tasks[index], ...taskData };
+                    showToast('Tarjeta actualizada correctamente');
+                }
+            } else {
+                tasks.push({
+                    id: 'task-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                    ...taskData
+                });
+                showToast('Nueva tarjeta creada');
+            }
+
+            saveToStorage();
+            renderBoard();
+            closeTaskModal();
+        }
+
+        function deleteCurrentTask() {
+            const id = document.getElementById('taskId').value;
+            if (!id) return;
+            tasks = tasks.filter(t => t.id !== id);
+            saveToStorage();
+            renderBoard();
+            closeTaskModal();
+            showToast('Tarjeta eliminada', 'info');
+        }
+
+        /**
+         * EXPORTAR / IMPORTAR RESPALDO JSON
+         */
+        function exportJSON() {
+            const payload = {
+                app: 'KanbanFlow',
+                exportedAt: new Date().toISOString(),
+                tasks
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const dateStamp = new Date().toISOString().split('T')[0];
+            a.href = url;
+            a.download = `kanban-respaldo-${dateStamp}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Respaldo JSON descargado');
+        }
+
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    const importedTasks = Array.isArray(parsed) ? parsed : parsed.tasks;
+
+                    if (!Array.isArray(importedTasks)) {
+                        throw new Error('Formato inválido');
+                    }
+
+                    // Validar estructura mínima de cada tarjeta
+                    const validColumns = COLUMNS.map(c => c.id);
+                    const sanitized = importedTasks.filter(t => t && typeof t.title === 'string').map(t => ({
+                        id: t.id || ('task-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6)),
+                        column: validColumns.includes(t.column) ? t.column : 'backlog',
+                        title: t.title.trim(),
+                        description: typeof t.description === 'string' ? t.description : '',
+                        priority: ['high', 'medium', 'low'].includes(t.priority) ? t.priority : 'medium',
+                        category: typeof t.category === 'string' ? t.category : '',
+                        dueDate: typeof t.dueDate === 'string' ? t.dueDate : '',
+                        subtasks: Array.isArray(t.subtasks) ? t.subtasks : []
+                    }));
+
+                    tasks = sanitized;
+                    saveToStorage();
+                    renderBoard();
+                    showToast(`Se importaron ${sanitized.length} tarjetas`);
+                } catch (err) {
+                    showToast('Error: El archivo JSON no tiene un formato válido', 'error');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        /**
+         * REINICIO CON DATOS DE EJEMPLO / LIMPIEZA DEL TABLERO
+         */
+        function toggleResetMenu() {
+            document.getElementById('resetDropdown').classList.toggle('hidden');
+        }
+
+        function requestConfirmation(actionType) {
+            document.getElementById('resetDropdown').classList.add('hidden');
+            pendingConfirmAction = actionType;
+
+            const titleEl = document.getElementById('confirmTitle');
+            const msgEl = document.getElementById('confirmMessage');
+            const btnEl = document.getElementById('confirmExecuteBtn');
+
+            if (actionType === 'reset') {
+                titleEl.textContent = '¿Restaurar datos de ejemplo?';
+                msgEl.textContent = 'Se reemplazarán tus tarjetas actuales por las 5 tarjetas de demostración iniciales.';
+                btnEl.className = 'px-4 py-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors';
+                btnEl.textContent = 'Restaurar ejemplos';
+            } else if (actionType === 'clear') {
+                titleEl.textContent = '¿Vaciar todo el tablero?';
+                msgEl.textContent = 'Se eliminarán todas las tarjetas de forma permanente. Te recomendamos exportar un respaldo antes.';
+                btnEl.className = 'px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors';
+                btnEl.textContent = 'Sí, vaciar tablero';
+            }
+
+            btnEl.onclick = executeConfirmedAction;
+            document.getElementById('confirmModal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            pendingConfirmAction = null;
+        }
+
+        function executeConfirmedAction() {
+            if (pendingConfirmAction === 'reset') {
+                tasks = getDefaultTasks();
+                saveToStorage();
+                renderBoard();
+                showToast('Datos de ejemplo restaurados');
+            } else if (pendingConfirmAction === 'clear') {
+                tasks = [];
+                saveToStorage();
+                renderBoard();
+                showToast('Tablero vaciado por completo', 'info');
+            }
+            closeConfirmModal();
+        }
+
+        /**
+         * UTILIDADES (BÚSQUEDA, ESCAPE XSS, TOASTS)
+         */
+        function clearSearch() {
+            const input = document.getElementById('searchInput');
+            input.value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            renderBoard();
+            input.focus();
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>"']/g, (m) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[m]));
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            const colors = {
+                success: 'bg-slate-900 text-white border-slate-700',
+                error: 'bg-rose-600 text-white border-rose-500',
+                info: 'bg-slate-800 text-white border-slate-700'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-xl shadow-lg border text-xs font-medium transform transition-all duration-300 translate-y-2 opacity-0 ${colors[type] || colors.success}`;
+            toast.innerHTML = `<span>${escapeHTML(message)}</span>`;
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2800);
+        }
+
+        // Arrancar aplicación al cargar el DOM
+        window.addEventListener('DOMContentLoaded', initBoard);
+    </script>
+</body>
+</html>
